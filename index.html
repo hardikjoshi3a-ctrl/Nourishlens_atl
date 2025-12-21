@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NourishLens</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+
+<style>
+:root{
+  --primary:#8DA399;
+  --bg:#F9F9F7;
+  --card:#fff;
+  --text:#2D3436;
+  --sub:#636E72;
+}
+[data-theme="dark"]{
+  --bg:#1E1E1E;
+  --card:#2C2C2C;
+  --text:#DFE6E9;
+  --sub:#B2BEC3;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Nunito,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+nav{
+  max-width:600px;
+  margin:auto;
+  padding:20px;
+  display:flex;
+  justify-content:space-between;
+}
+.app{
+  max-width:500px;
+  margin:auto;
+  padding:20px;
+  text-align:center;
+}
+.camera{
+  height:340px;
+  border-radius:25px;
+  overflow:hidden;
+  border:2px solid var(--primary);
+  position:relative;
+}
+video,canvas{width:100%;height:100%;object-fit:cover}
+#canvas{display:none}
+.scan-line{
+  position:absolute;
+  width:80%;
+  height:2px;
+  background:white;
+  top:50%;
+  left:10%;
+  animation:scan 2s infinite;
+  display:none;
+}
+@keyframes scan{
+  0%{transform:translateY(-150px);opacity:0}
+  50%{opacity:1}
+  100%{transform:translateY(150px);opacity:0}
+}
+button{
+  margin-top:20px;
+  padding:15px 35px;
+  border:none;
+  border-radius:30px;
+  background:var(--primary);
+  color:#fff;
+  font-size:1.1rem;
+  cursor:pointer;
+}
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  align-items:flex-end;
+}
+.modal.active{display:flex}
+.sheet{
+  background:var(--card);
+  width:100%;
+  padding:30px;
+  border-radius:25px 25px 0 0;
+}
+.option{
+  padding:15px;
+  margin-top:10px;
+  background:rgba(141,163,153,.15);
+  border-radius:15px;
+  cursor:pointer;
+}
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  margin-top:20px;
+}
+.card{
+  padding:15px;
+  background:var(--bg);
+  border-radius:15px;
+}
+.value{
+  font-size:1.4rem;
+  font-weight:700;
+  color:var(--primary);
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <strong>NourishLens</strong>
+  <button id="themeBtn">🌙</button>
+</nav>
+
+<div class="app">
+  <div class="camera">
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas"></canvas>
+    <div class="scan-line" id="scanLine"></div>
+    <div id="status" style="position:absolute;top:45%;width:100%;color:white;font-weight:bold;display:none;">Loading…</div>
+  </div>
+  <button id="scanBtn">Scan Food</button>
+</div>
+
+<div class="modal" id="confirmModal">
+  <div class="sheet">
+    <h2>Confirm food</h2>
+    <div id="options"></div>
+  </div>
+</div>
+
+<div class="modal" id="resultModal">
+  <div class="sheet">
+    <h2 id="foodName"></h2>
+    <div class="grid">
+      <div class="card"><div class="value" id="cal"></div>Calories</div>
+      <div class="card"><div class="value" id="pro"></div>Protein</div>
+      <div class="card"><div class="value" id="carb"></div>Carbs</div>
+      <div class="card"><div class="value" id="fat"></div>Fat</div>
+    </div>
+    <button onclick="closeResult()">Done</button>
+  </div>
+</div>
+
+<div class="modal" id="feedbackModal">
+  <div class="sheet">
+    <h2>Your experience?</h2>
+    <div class="option" onclick="closeFeedback()">👍 Loved it</div>
+    <div class="option" onclick="closeFeedback()">🙂 It’s okay</div>
+    <div class="option" onclick="closeFeedback()">😐 Needs work</div>
+  </div>
+</div>
+
+<script>
+let scanCount = 0;
+
+const FOOD_DB = {
+  banana:{cal:105,pro:"1.3g",carb:"27g",fat:"0.3g"},
+  apple:{cal:95,pro:"0.5g",carb:"25g",fat:"0.3g"},
+  mango:{cal:99,pro:"1.4g",carb:"25g",fat:"0.6g"},
+  rice:{cal:205,pro:"4g",carb:"45g",fat:"0.4g"},
+  dal:{cal:180,pro:"9g",carb:"30g",fat:"1g"},
+  roti:{cal:120,pro:"3g",carb:"20g",fat:"1g"},
+  dosa:{cal:170,pro:"4g",carb:"28g",fat:"4g"},
+  idli:{cal:60,pro:"2g",carb:"12g",fat:"0.4g"},
+  paneer:{cal:265,pro:"18g",carb:"6g",fat:"20g"},
+  chicken_curry:{cal:240,pro:"26g",carb:"6g",fat:"14g"},
+  pizza:{cal:285,pro:"12g",carb:"36g",fat:"10g"},
+  pasta:{cal:220,pro:"8g",carb:"43g",fat:"1g"},
+  burger:{cal:354,pro:"17g",carb:"29g",fat:"17g"},
+  sushi:{cal:200,pro:"6g",carb:"28g",fat:"3g"},
+  noodles:{cal:190,pro:"7g",carb:"35g",fat:"4g"},
+  fried_rice:{cal:250,pro:"6g",carb:"45g",fat:"6g"},
+  spring_roll:{cal:160,pro:"4g",carb:"20g",fat:"7g"},
+  apple_pie:{cal:300,pro:"3g",carb:"40g",fat:"14g"},
+  salad:{cal:120,pro:"2g",carb:"10g",fat:"8g"},
+  carrot:{cal:25,pro:"0.6g",carb:"6g",fat:"0.1g"},
+  tomato:{cal:22,pro:"1g",carb:"5g",fat:"0.2g"},
+  potato:{cal:160,pro:"4g",carb:"37g",fat:"0.2g"},
+  broccoli:{cal:55,pro:"4g",carb:"11g",fat:"0.6g"},
+  orange:{cal:62,pro:"1.2g",carb:"15g",fat:"0.2g"}
+};
+
+const KEYWORDS = {
+  banana:["banana"],
+  apple:["apple"],
+  mango:["mango"],
+  rice:["rice"],
+  dal:["lentil","dal"],
+  roti:["roti","chapati"],
+  dosa:["dosa"],
+  idli:["idli"],
+  paneer:["paneer","cheese"],
+  chicken_curry:["chicken"],
+  pizza:["pizza"],
+  pasta:["pasta","spaghetti"],
+  burger:["burger"],
+  sushi:["sushi"],
+  noodles:["noodle"],
+  fried_rice:["fried rice"],
+  spring_roll:["spring roll"],
+  apple_pie:["pie"],
+  salad:["salad"],
+  carrot:["carrot"],
+  tomato:["tomato"],
+  potato:["potato"],
+  broccoli:["broccoli"],
+  orange:["orange"]
+};
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const scanLine = document.getElementById("scanLine");
+const statusText = document.getElementById("status");
+let model;
+
+async function startCamera(){
+  const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  video.srcObject = stream;
+}
+async function loadModel(){
+  statusText.style.display="block";
+  statusText.innerText="Loading AI…";
+  model = await mobilenet.load();
+  statusText.style.display="none";
+}
+startCamera();
+loadModel();
+
+document.getElementById("scanBtn").onclick = async ()=>{
+  scanCount++;
+  scanLine.style.display="block";
+  statusText.style.display="block";
+  statusText.innerText="Analyzing…";
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video,0,0);
+
+  const predictions = await model.classify(canvas);
+  scanLine.style.display="none";
+  statusText.style.display="none";
+
+  let matches = new Set();
+  predictions.forEach(p=>{
+    const text = p.className.toLowerCase();
+    Object.entries(KEYWORDS).forEach(([food,keys])=>{
+      keys.forEach(k=>{
+        if(text.includes(k)) matches.add(food);
+      });
+    });
+  });
+
+  showConfirm([...matches].slice(0,5));
+
+  if(scanCount === 3){
+    document.getElementById("feedbackModal").classList.add("active");
+  }
+};
+
+function showConfirm(items){
+  const modal=document.getElementById("confirmModal");
+  const box=document.getElementById("options");
+  box.innerHTML="";
+  if(items.length===0) items=Object.keys(FOOD_DB);
+  items.forEach(f=>{
+    const div=document.createElement("div");
+    div.className="option";
+    div.innerText=f.replace("_"," ").toUpperCase();
+    div.onclick=()=>showResult(f);
+    box.appendChild(div);
+  });
+  modal.classList.add("active");
+}
+
+function showResult(food){
+  confirmModal.classList.remove("active");
+  resultModal.classList.add("active");
+  const d = FOOD_DB[food];
+  foodName.innerText = food.replace("_"," ").toUpperCase();
+  cal.innerText = d.cal;
+  pro.innerText = d.pro;
+  carb.innerText = d.carb;
+  fat.innerText = d.fat;
+}
+
+function closeResult(){
+  resultModal.classList.remove("active");
+}
+function closeFeedback(){
+  feedbackModal.classList.remove("active");
+}
+
+document.getElementById("themeBtn").onclick = ()=>{
+  document.documentElement.toggleAttribute("data-theme");
+};
+</script>
+
+</body>
+</html>
