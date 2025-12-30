@@ -191,17 +191,18 @@ scanBtn.onclick = async () => {
   // Fake label mapping fallback
   let predictedFood = FOOD_LIST[index % FOOD_LIST.length];
 
-  if (confidence > 65) {
-    output.innerHTML = `
-      Detected: <span class="neon">${predictedFood}</span><br>
-      Confidence: ${confidence}%
-      <div class="confirm">
-        <button onclick="confirmFood('${predictedFood}')">Confirm</button>
-        <button onclick="manual()">Wrong</button>
-      </div>`;
-  } else {
-    manual();
-  }
+ if (confidence > 65) {
+  output.innerHTML = `
+    Detected: <span class="neon">${predictedFood}</span><br>
+    Confidence: ${confidence}%
+    <div class="confirm">
+      <button onclick="confirmFood('${predictedFood}')">Confirm</button>
+      <button onclick="manual()">Wrong</button>
+    </div>`;
+} else {
+  manual();
+}
+
 };
 
 function manual() {
@@ -216,7 +217,6 @@ function manual() {
 manualSelect.onchange = () => {
   confirmFood(manualSelect.value);
 };
-
 function confirmFood(food) {
   manualSelect.style.display = "none";
   output.innerHTML = `
@@ -224,6 +224,8 @@ function confirmFood(food) {
     <span class="neon">${food}</span>
   `;
 }
+
+
 </script>
 </body>
 </html>
