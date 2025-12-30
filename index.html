@@ -205,8 +205,12 @@ scanBtn.onclick = async () => {
 };
 
 function manual() {
-  output.innerHTML = "Select the correct food 👇";
+  output.style.display = "block";
+  output.innerHTML = "AI is unsure. Select the correct food 👇";
   manualSelect.style.display = "block";
+  manualSelect.scrollTop = 0;
+}
+
 }
 
 manualSelect.onchange = () => {
