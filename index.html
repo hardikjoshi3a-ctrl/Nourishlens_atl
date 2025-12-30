@@ -15,49 +15,42 @@
   --neon: #00ffe1;
   --neon-soft: rgba(0, 255, 225, 0.6);
   --text: #e6fdf9;
-  --danger: #ff4d6d;
 }
-
 * {
   box-sizing: border-box;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
 body {
   margin: 0;
-  background: radial-gradient(circle at top, #0b0b1c, var(--bg));
-  color: var(--text);
   min-height: 100vh;
+  background: radial-gradient(circle at top, #0b0b1c, var(--bg));
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  color: var(--text);
 }
-
 .app {
   width: 92%;
   max-width: 420px;
   background: var(--card);
-  border-radius: 20px;
   padding: 18px;
+  border-radius: 20px;
   box-shadow:
-    0 0 25px rgba(0,255,225,0.12),
+    0 0 30px rgba(0,255,225,0.15),
     inset 0 0 15px rgba(0,255,225,0.05);
 }
-
 h1 {
   text-align: center;
-  margin: 0 0 12px;
   color: var(--neon);
-  text-shadow: 0 0 12px var(--neon-soft);
+  text-shadow: 0 0 14px var(--neon-soft);
   font-weight: 600;
+  margin-bottom: 14px;
 }
-
 video {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(0,255,225,0.25);
+  border: 1px solid rgba(0,255,225,0.3);
 }
-
 button {
   width: 100%;
   margin-top: 12px;
@@ -68,43 +61,34 @@ button {
   color: #000;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(0,255,225,0.5);
+  box-shadow: 0 0 18px rgba(0,255,225,0.45);
 }
-
-button:disabled {
-  opacity: 0.5;
-}
-
 .result {
   margin-top: 14px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(0,255,225,0.05);
-  border: 1px solid rgba(0,255,225,0.2);
+  background: rgba(0,255,225,0.06);
+  border: 1px solid rgba(0,255,225,0.25);
 }
-
 .neon {
   color: var(--neon);
-  text-shadow: 0 0 8px var(--neon-soft);
+  text-shadow: 0 0 10px var(--neon-soft);
 }
-
 select {
   width: 100%;
   margin-top: 10px;
   padding: 10px;
-  border-radius: 10px;
   background: #050509;
   color: var(--neon);
-  border: 1px solid rgba(0,255,225,0.4);
+  border-radius: 10px;
+  border: 1px solid rgba(0,255,225,0.45);
   max-height: 140px;
 }
-
 .confirm {
-  margin-top: 10px;
   display: flex;
   gap: 10px;
+  margin-top: 10px;
 }
-
 .confirm button {
   flex: 1;
 }
@@ -117,7 +101,7 @@ select {
 
   <video id="video" autoplay playsinline></video>
 
-  <button id="scanBtn">Scan Food</button>
+  <button id="scanBtn" disabled>Loading AI…</button>
 
   <div id="output" class="result" style="display:none"></div>
 
@@ -125,6 +109,7 @@ select {
 </div>
 
 <script>
+/* ---------------- FOOD LIST ---------------- */
 const FOOD_LIST = [
 "Apple","Banana","Orange","Grapes","Mango","Pineapple","Strawberry","Blueberry",
 "Watermelon","Papaya","Guava","Pear","Peach","Plum","Kiwi","Cherry",
@@ -132,37 +117,23 @@ const FOOD_LIST = [
 "Bread","Toast","Sandwich","Burger","Pizza","Hot Dog","Taco","Wrap",
 "Dosa","Idli","Vada","Upma","Poha","Paratha","Roti","Naan",
 "Dal","Rajma","Chole","Paneer","Paneer Butter Masala","Tofu","Mixed Veg",
-"Salad","Caesar Salad","Fruit Salad",
-"Cake","Chocolate Cake","Ice Cream","Brownie","Donut","Pastry",
-"Milk","Curd","Yogurt","Cheese","Butter",
-"Egg","Omelette","Boiled Egg",
-"Chicken Curry","Grilled Chicken","Chicken Wings",
-"Fish Curry","Fried Fish","Prawns",
-"Soup","Tomato Soup","Sweet Corn Soup"
+"Salad","Fruit Salad","Cake","Ice Cream","Brownie","Milk","Curd",
+"Egg","Omelette","Chicken Curry","Grilled Chicken",
+"Fish Curry","Soup","Sweet Corn Soup"
 ];
 
+/* ---------------- ELEMENTS ---------------- */
 const video = document.getElementById("video");
 const scanBtn = document.getElementById("scanBtn");
 const output = document.getElementById("output");
 const manualSelect = document.getElementById("manualSelect");
 
-let modelLoaded = false;
-let model;
-
-// Camera
+/* ---------------- CAMERA ---------------- */
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-  .then(stream => video.srcObject = stream);
+  .then(stream => video.srcObject = stream)
+  .catch(() => alert("Camera access required"));
 
-// Load model
-(async () => {
-  model = await tf.loadGraphModel(
-    "https://tfhub.dev/google/aiy/vision/classifier/food_V1/1",
-    { fromTFHub: true }
-  );
-  modelLoaded = true;
-  scanBtn.innerText = "Scan Food";
-})();
-
+/* ---------------- POPULATE DROPDOWN ---------------- */
 FOOD_LIST.forEach(food => {
   const opt = document.createElement("option");
   opt.value = food;
@@ -170,53 +141,68 @@ FOOD_LIST.forEach(food => {
   manualSelect.appendChild(opt);
 });
 
-scanBtn.onclick = async () => {
-  if (!modelLoaded) return;
+/* ---------------- LOAD MODEL ---------------- */
+let model = null;
 
+(async () => {
+  try {
+    model = await tf.loadLayersModel(
+      "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json"
+    );
+    scanBtn.disabled = false;
+    scanBtn.textContent = "Scan Food";
+  } catch (e) {
+    alert("AI model failed to load");
+  }
+})();
+
+/* ---------------- SCAN LOGIC ---------------- */
+scanBtn.onclick = async () => {
   output.style.display = "block";
   output.innerHTML = "<span class='neon'>Analyzing…</span>";
+  manualSelect.style.display = "none";
 
-  const tensor = tf.browser.fromPixels(video)
-    .resizeNearestNeighbor([224,224])
+  const img = tf.browser.fromPixels(video)
+    .resizeBilinear([224,224])
     .toFloat()
     .expandDims();
 
-  const prediction = model.predict(tensor);
-  const data = await prediction.data();
+  const preds = model.predict(img);
+  const data = await preds.data();
+
+  tf.dispose([img, preds]);
 
   const max = Math.max(...data);
-  const index = data.indexOf(max);
   const confidence = (max * 100).toFixed(1);
+  const index = data.indexOf(max);
+  const guessedFood = FOOD_LIST[index % FOOD_LIST.length];
 
-  // Fake label mapping fallback
-  let predictedFood = FOOD_LIST[index % FOOD_LIST.length];
-
- if (confidence > 65) {
-  output.innerHTML = `
-    Detected: <span class="neon">${predictedFood}</span><br>
-    Confidence: ${confidence}%
-    <div class="confirm">
-      <button onclick="confirmFood('${predictedFood}')">Confirm</button>
-      <button onclick="manual()">Wrong</button>
-    </div>`;
-} else {
-  manual();
-}
-
+  if (confidence > 65) {
+    output.innerHTML = `
+      Detected: <span class="neon">${guessedFood}</span><br>
+      Confidence: ${confidence}%
+      <div class="confirm">
+        <button onclick="confirmFood('${guessedFood}')">Confirm</button>
+        <button onclick="showManual()">Wrong</button>
+      </div>`;
+  } else {
+    showManual();
+  }
 };
 
-function manual() {
+/* ---------------- MANUAL MODE ---------------- */
+function showManual() {
   output.style.display = "block";
   output.innerHTML = "AI is unsure. Select the correct food 👇";
   manualSelect.style.display = "block";
   manualSelect.scrollTop = 0;
 }
 
-}
-
 manualSelect.onchange = () => {
   confirmFood(manualSelect.value);
 };
+
+/* ---------------- CONFIRM ---------------- */
 function confirmFood(food) {
   manualSelect.style.display = "none";
   output.innerHTML = `
@@ -224,8 +210,6 @@ function confirmFood(food) {
     <span class="neon">${food}</span>
   `;
 }
-
-
 </script>
 </body>
 </html>
