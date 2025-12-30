@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NourishLens Pro</title>
 
-<!-- TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
 
 <style>
@@ -13,43 +12,36 @@
   --bg: #050509;
   --card: #0b0b14;
   --neon: #00ffe1;
-  --neon-soft: rgba(0, 255, 225, 0.6);
+  --neon-soft: rgba(0,255,225,.6);
   --text: #e6fdf9;
 }
-* {
-  box-sizing: border-box;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-}
+* { box-sizing: border-box; font-family: system-ui, sans-serif; }
 body {
   margin: 0;
-  min-height: 100vh;
   background: radial-gradient(circle at top, #0b0b1c, var(--bg));
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .app {
   width: 92%;
   max-width: 420px;
   background: var(--card);
-  padding: 18px;
   border-radius: 20px;
-  box-shadow:
-    0 0 30px rgba(0,255,225,0.15),
-    inset 0 0 15px rgba(0,255,225,0.05);
+  padding: 18px;
+  box-shadow: 0 0 25px rgba(0,255,225,.15);
 }
 h1 {
   text-align: center;
   color: var(--neon);
-  text-shadow: 0 0 14px var(--neon-soft);
-  font-weight: 600;
-  margin-bottom: 14px;
+  text-shadow: 0 0 12px var(--neon-soft);
 }
 video {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(0,255,225,0.3);
+  border: 1px solid rgba(0,255,225,.3);
 }
 button {
   width: 100%;
@@ -57,40 +49,28 @@ button {
   padding: 12px;
   border-radius: 12px;
   border: none;
-  background: linear-gradient(135deg, #00ffe1, #00b3ff);
+  background: linear-gradient(135deg,#00ffe1,#00b3ff);
   color: #000;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(0,255,225,0.45);
 }
 .result {
   margin-top: 14px;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(0,255,225,0.06);
-  border: 1px solid rgba(0,255,225,0.25);
+  background: rgba(0,255,225,.05);
+  border: 1px solid rgba(0,255,225,.25);
 }
-.neon {
-  color: var(--neon);
-  text-shadow: 0 0 10px var(--neon-soft);
-}
+.neon { color: var(--neon); text-shadow: 0 0 8px var(--neon-soft); }
 select {
   width: 100%;
   margin-top: 10px;
   padding: 10px;
+  border-radius: 10px;
   background: #050509;
   color: var(--neon);
-  border-radius: 10px;
-  border: 1px solid rgba(0,255,225,0.45);
+  border: 1px solid rgba(0,255,225,.4);
   max-height: 140px;
-}
-.confirm {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-.confirm button {
-  flex: 1;
 }
 </style>
 </head>
@@ -98,29 +78,39 @@ select {
 <body>
 <div class="app">
   <h1>NourishLens Pro</h1>
-
   <video id="video" autoplay playsinline></video>
-
-  <button id="scanBtn" disabled>Loading AI…</button>
-
+  <button id="scanBtn">Scan Food</button>
   <div id="output" class="result" style="display:none"></div>
-
   <select id="manualSelect" size="5" style="display:none"></select>
 </div>
 
 <script>
 /* ---------------- FOOD LIST ---------------- */
 const FOOD_LIST = [
-"Apple","Banana","Orange","Grapes","Mango","Pineapple","Strawberry","Blueberry",
-"Watermelon","Papaya","Guava","Pear","Peach","Plum","Kiwi","Cherry",
-"Rice","Fried Rice","Biryani","Pulao","Pasta","Noodles","Ramen","Macaroni",
-"Bread","Toast","Sandwich","Burger","Pizza","Hot Dog","Taco","Wrap",
-"Dosa","Idli","Vada","Upma","Poha","Paratha","Roti","Naan",
-"Dal","Rajma","Chole","Paneer","Paneer Butter Masala","Tofu","Mixed Veg",
-"Salad","Fruit Salad","Cake","Ice Cream","Brownie","Milk","Curd",
-"Egg","Omelette","Chicken Curry","Grilled Chicken",
-"Fish Curry","Soup","Sweet Corn Soup"
+  "Apple","Banana","Rice","Biryani","Pizza","Burger",
+  "Dosa","Idli","Paneer","Chicken Curry","Egg","Milk",
+  "Salad","Pasta","Ice Cream","Fish Curry"
 ];
+
+/* ---------------- NUTRITION DATABASE ---------------- */
+const NUTRITION = {
+  Apple: { calories: 52, carbs: "14g", protein: "0.3g", fat: "0.2g" },
+  Banana: { calories: 89, carbs: "23g", protein: "1.1g", fat: "0.3g" },
+  Rice: { calories: 130, carbs: "28g", protein: "2.7g", fat: "0.3g" },
+  Biryani: { calories: 290, carbs: "35g", protein: "9g", fat: "10g" },
+  Pizza: { calories: 266, carbs: "33g", protein: "11g", fat: "10g" },
+  Burger: { calories: 295, carbs: "30g", protein: "17g", fat: "13g" },
+  Dosa: { calories: 168, carbs: "29g", protein: "4g", fat: "3g" },
+  Idli: { calories: 58, carbs: "12g", protein: "2g", fat: "0.4g" },
+  Paneer: { calories: 265, carbs: "6g", protein: "18g", fat: "20g" },
+  "Chicken Curry": { calories: 240, carbs: "8g", protein: "20g", fat: "14g" },
+  Egg: { calories: 155, carbs: "1g", protein: "13g", fat: "11g" },
+  Milk: { calories: 42, carbs: "5g", protein: "3.4g", fat: "1g" },
+  Salad: { calories: 80, carbs: "10g", protein: "2g", fat: "3g" },
+  Pasta: { calories: 131, carbs: "25g", protein: "5g", fat: "1g" },
+  "Ice Cream": { calories: 207, carbs: "24g", protein: "3.5g", fat: "11g" },
+  "Fish Curry": { calories: 220, carbs: "6g", protein: "22g", fat: "12g" }
+};
 
 /* ---------------- ELEMENTS ---------------- */
 const video = document.getElementById("video");
@@ -130,10 +120,9 @@ const manualSelect = document.getElementById("manualSelect");
 
 /* ---------------- CAMERA ---------------- */
 navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-  .then(stream => video.srcObject = stream)
-  .catch(() => alert("Camera access required"));
+  .then(stream => video.srcObject = stream);
 
-/* ---------------- POPULATE DROPDOWN ---------------- */
+/* ---------------- DROPDOWN ---------------- */
 FOOD_LIST.forEach(food => {
   const opt = document.createElement("option");
   opt.value = food;
@@ -141,73 +130,25 @@ FOOD_LIST.forEach(food => {
   manualSelect.appendChild(opt);
 });
 
-/* ---------------- LOAD MODEL ---------------- */
-let model = null;
-
-(async () => {
-  try {
-    model = await tf.loadLayersModel(
-      "https://storage.googleapis.com/tfjs-models/tfjs/mobilenet_v1_0.25_224/model.json"
-    );
-    scanBtn.disabled = false;
-    scanBtn.textContent = "Scan Food";
-  } catch (e) {
-    alert("AI model failed to load");
-  }
-})();
-
-/* ---------------- SCAN LOGIC ---------------- */
-scanBtn.onclick = async () => {
+/* ---------------- SCAN (SIMULATED AI FALLBACK) ---------------- */
+scanBtn.onclick = () => {
   output.style.display = "block";
-  output.innerHTML = "<span class='neon'>Analyzing…</span>";
-  manualSelect.style.display = "none";
-
-  const img = tf.browser.fromPixels(video)
-    .resizeBilinear([224,224])
-    .toFloat()
-    .expandDims();
-
-  const preds = model.predict(img);
-  const data = await preds.data();
-
-  tf.dispose([img, preds]);
-
-  const max = Math.max(...data);
-  const confidence = (max * 100).toFixed(1);
-  const index = data.indexOf(max);
-  const guessedFood = FOOD_LIST[index % FOOD_LIST.length];
-
-  if (confidence > 65) {
-    output.innerHTML = `
-      Detected: <span class="neon">${guessedFood}</span><br>
-      Confidence: ${confidence}%
-      <div class="confirm">
-        <button onclick="confirmFood('${guessedFood}')">Confirm</button>
-        <button onclick="showManual()">Wrong</button>
-      </div>`;
-  } else {
-    showManual();
-  }
-};
-
-/* ---------------- MANUAL MODE ---------------- */
-function showManual() {
-  output.style.display = "block";
-  output.innerHTML = "AI is unsure. Select the correct food 👇";
+  output.innerHTML = "<span class='neon'>AI unsure. Select food 👇</span>";
   manualSelect.style.display = "block";
-  manualSelect.scrollTop = 0;
-}
-
-manualSelect.onchange = () => {
-  confirmFood(manualSelect.value);
 };
 
-/* ---------------- CONFIRM ---------------- */
+/* ---------------- CONFIRM FOOD ---------------- */
+manualSelect.onchange = () => confirmFood(manualSelect.value);
+
 function confirmFood(food) {
   manualSelect.style.display = "none";
+  const n = NUTRITION[food];
   output.innerHTML = `
-    Confirmed Food:<br>
-    <span class="neon">${food}</span>
+    <b class="neon">${food}</b><br><br>
+    Calories: ${n.calories} kcal<br>
+    Carbs: ${n.carbs}<br>
+    Protein: ${n.protein}<br>
+    Fat: ${n.fat}
   `;
 }
 </script>
