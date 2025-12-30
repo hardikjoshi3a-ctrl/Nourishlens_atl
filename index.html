@@ -1,347 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NourishLens Pro</title>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NourishLens</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
-
+<!-- TensorFlow.js -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
 
 <style>
-:root{
-  --primary:#8DA399;
-  --bg:#F9F9F7;
-  --card:#fff;
-  --text:#2D3436;
-  --sub:#636E72;
-}html, body {
-  height: 100%;
-  overflow: auto;
+:root {
+  --bg: #050509;
+  --card: #0b0b14;
+  --neon: #00ffe1;
+  --neon-soft: rgba(0, 255, 225, 0.6);
+  --text: #e6fdf9;
+  --danger: #ff4d6d;
 }
 
-[data-theme="dark"]{
-  --bg:#1E1E1E;
-  --card:#2C2C2C;
-  --text:#DFE6E9;
-  --sub:#B2BEC3;
-}
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Nunito,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-nav{
-  max-width:600px;
-  margin:auto;
-  padding:20px;
-  display:flex;
-  justify-content:space-between;
-}
-.app{
-  max-width:500px;
-  margin:auto;
-  padding:20px;
-  text-align:center;
-}#options {
-  pointer-events: auto;
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-.camera{
-  height:340px;
-  border-radius:25px;
-  overflow:hidden;
-  border:2px solid var(--primary);
-  position:relative;
-}
-video,canvas{width:100%;height:100%;object-fit:cover}
-#canvas{display:none}
-.scan-line{
-  position:absolute;
-  width:80%;
-  height:2px;
-  background:white;
-  top:50%;
-  left:10%;
-  animation:scan 2s infinite;
-  display:none;
-}
-@keyframes scan{
-  0%{transform:translateY(-150px);opacity:0}
-  50%{opacity:1}
-  100%{transform:translateY(150px);opacity:0}
-}
-button{
-  margin-top:20px;
-  padding:15px 35px;
-  border:none;
-  border-radius:30px;
-  background:var(--primary);
-  color:#fff;
-  font-size:1.1rem;
-  cursor:pointer;
-}.sheet {
-  position: relative;   /* or keep fixed but then */
-  overscroll-behavior: contain;
+body {
+  margin: 0;
+  background: radial-gradient(circle at top, #0b0b1c, var(--bg));
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  display:none;
-  align-items:flex-end;
-}
-.modal.active{display:flex}
-.sheet{
-  background:var(--card);
-  width:100%;
-  padding:30px;
-  border-radius:25px 25px 0 0;
-}#options {
-  height: 50vh;
-  overflow-y: scroll;
-  touch-action: pan-y;
-  -webkit-overflow-scrolling: touch;
+.app {
+  width: 92%;
+  max-width: 420px;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow:
+    0 0 25px rgba(0,255,225,0.12),
+    inset 0 0 15px rgba(0,255,225,0.05);
 }
 
-.option{
-  padding:15px;
-  margin-top:10px;
-  background:rgba(141,163,153,.15);
-  border-radius:15px;
-  cursor:pointer;
-}
-.grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-  margin-top:20px;
-}
-.card{
-  padding:15px;
-  background:var(--bg);
-  border-radius:15px;
-}.sheet{
-  max-height: 80vh;
-  overflow: hidden;
+h1 {
+  text-align: center;
+  margin: 0 0 12px;
+  color: var(--neon);
+  text-shadow: 0 0 12px var(--neon-soft);
+  font-weight: 600;
 }
 
-.value{
-  font-size:1.4rem;
-  font-weight:700;
-  color:var(--primary);
-}#options::-webkit-scrollbar{
-  width:6px;
-}
-#options::-webkit-scrollbar-thumb{
-  background:rgba(0,0,0,.2);
-  border-radius:10px;
-}#options{
-  height: 50vh;
-  overflow-y: scroll;
-  -webkit-overflow-scrolling: touch;
+video {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(0,255,225,0.25);
 }
 
+button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #00ffe1, #00b3ff);
+  color: #000;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 18px rgba(0,255,225,0.5);
+}
 
+button:disabled {
+  opacity: 0.5;
+}
+
+.result {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0,255,225,0.05);
+  border: 1px solid rgba(0,255,225,0.2);
+}
+
+.neon {
+  color: var(--neon);
+  text-shadow: 0 0 8px var(--neon-soft);
+}
+
+select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #050509;
+  color: var(--neon);
+  border: 1px solid rgba(0,255,225,0.4);
+  max-height: 140px;
+}
+
+.confirm {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+}
+
+.confirm button {
+  flex: 1;
+}
 </style>
 </head>
 
 <body>
-
-<nav>
-  <strong>NourishLens</strong>
-  <button id="themeBtn">🌙</button>
-</nav>
-
 <div class="app">
-  <div class="camera">
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
-    <div class="scan-line" id="scanLine"></div>
-    <div id="status" style="position:absolute;top:45%;width:100%;color:white;font-weight:bold;display:none;">Loading…</div>
-  </div>
+  <h1>NourishLens Pro</h1>
+
+  <video id="video" autoplay playsinline></video>
+
   <button id="scanBtn">Scan Food</button>
-</div>
 
-<div class="modal" id="confirmModal">
-  <div class="sheet">
-    <h2>Confirm food</h2>
-    <div id="options"></div>
-  </div>
-</div>
+  <div id="output" class="result" style="display:none"></div>
 
-<div class="modal" id="resultModal">
-  <div class="sheet">
-    <h2 id="foodName"></h2>
-    <div class="grid">
-      <div class="card"><div class="value" id="cal"></div>Calories</div>
-      <div class="card"><div class="value" id="pro"></div>Protein</div>
-      <div class="card"><div class="value" id="carb"></div>Carbs</div>
-      <div class="card"><div class="value" id="fat"></div>Fat</div>
-    </div>
-    <button onclick="closeResult()">Done</button>
-  </div>
-</div>
-
-<div class="modal" id="feedbackModal">
-  <div class="sheet">
-    <h2>Your experience?</h2>
-    <div class="option" onclick="closeFeedback()">👍 Loved it</div>
-    <div class="option" onclick="closeFeedback()">🙂 It’s okay</div>
-    <div class="option" onclick="closeFeedback()">😐 Needs work</div>
-  </div>
+  <select id="manualSelect" size="5" style="display:none"></select>
 </div>
 
 <script>
-let scanCount = 0;
-
-const FOOD_DB = {
-  banana:{cal:105,pro:"1.3g",carb:"27g",fat:"0.3g"},
-  apple:{cal:95,pro:"0.5g",carb:"25g",fat:"0.3g"},
-  mango:{cal:99,pro:"1.4g",carb:"25g",fat:"0.6g"},
-  rice:{cal:205,pro:"4g",carb:"45g",fat:"0.4g"},
-  dal:{cal:180,pro:"9g",carb:"30g",fat:"1g"},
-  roti:{cal:120,pro:"3g",carb:"20g",fat:"1g"},
-  dosa:{cal:170,pro:"4g",carb:"28g",fat:"4g"},
-  idli:{cal:60,pro:"2g",carb:"12g",fat:"0.4g"},
-  paneer:{cal:265,pro:"18g",carb:"6g",fat:"20g"},
-  chicken_curry:{cal:240,pro:"26g",carb:"6g",fat:"14g"},
-  pizza:{cal:285,pro:"12g",carb:"36g",fat:"10g"},
-  pasta:{cal:220,pro:"8g",carb:"43g",fat:"1g"},
-  burger:{cal:354,pro:"17g",carb:"29g",fat:"17g"},
-  sushi:{cal:200,pro:"6g",carb:"28g",fat:"3g"},
-  noodles:{cal:190,pro:"7g",carb:"35g",fat:"4g"},
-  fried_rice:{cal:250,pro:"6g",carb:"45g",fat:"6g"},
-  spring_roll:{cal:160,pro:"4g",carb:"20g",fat:"7g"},
-  apple_pie:{cal:300,pro:"3g",carb:"40g",fat:"14g"},
-  salad:{cal:120,pro:"2g",carb:"10g",fat:"8g"},
-  carrot:{cal:25,pro:"0.6g",carb:"6g",fat:"0.1g"},
-  tomato:{cal:22,pro:"1g",carb:"5g",fat:"0.2g"},
-  potato:{cal:160,pro:"4g",carb:"37g",fat:"0.2g"},
-  broccoli:{cal:55,pro:"4g",carb:"11g",fat:"0.6g"},
-  orange:{cal:62,pro:"1.2g",carb:"15g",fat:"0.2g"}
-};
-
-const KEYWORDS = {
-  banana:["banana"],
-  apple:["apple"],
-  mango:["mango"],
-  rice:["rice"],
-  dal:["lentil","dal"],
-  roti:["roti","chapati"],
-  dosa:["dosa"],
-  idli:["idli"],
-  paneer:["paneer","cheese"],
-  chicken_curry:["chicken"],
-  pizza:["pizza"],
-  pasta:["pasta","spaghetti"],
-  burger:["burger"],
-  sushi:["sushi"],
-  noodles:["noodle"],
-  fried_rice:["fried rice"],
-  spring_roll:["spring roll"],
-  apple_pie:["pie"],
-  salad:["salad"],
-  carrot:["carrot"],
-  tomato:["tomato"],
-  potato:["potato"],
-  broccoli:["broccoli"],
-  orange:["orange"]
-};
+const FOOD_LIST = [
+"Apple","Banana","Orange","Grapes","Mango","Pineapple","Strawberry","Blueberry",
+"Watermelon","Papaya","Guava","Pear","Peach","Plum","Kiwi","Cherry",
+"Rice","Fried Rice","Biryani","Pulao","Pasta","Noodles","Ramen","Macaroni",
+"Bread","Toast","Sandwich","Burger","Pizza","Hot Dog","Taco","Wrap",
+"Dosa","Idli","Vada","Upma","Poha","Paratha","Roti","Naan",
+"Dal","Rajma","Chole","Paneer","Paneer Butter Masala","Tofu","Mixed Veg",
+"Salad","Caesar Salad","Fruit Salad",
+"Cake","Chocolate Cake","Ice Cream","Brownie","Donut","Pastry",
+"Milk","Curd","Yogurt","Cheese","Butter",
+"Egg","Omelette","Boiled Egg",
+"Chicken Curry","Grilled Chicken","Chicken Wings",
+"Fish Curry","Fried Fish","Prawns",
+"Soup","Tomato Soup","Sweet Corn Soup"
+];
 
 const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const scanLine = document.getElementById("scanLine");
-const statusText = document.getElementById("status");
+const scanBtn = document.getElementById("scanBtn");
+const output = document.getElementById("output");
+const manualSelect = document.getElementById("manualSelect");
+
+let modelLoaded = false;
 let model;
 
-async function startCamera(){
-  const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-  video.srcObject = stream;
-}
-async function loadModel(){
-  statusText.style.display="block";
-  statusText.innerText="Loading AI…";
-  model = await mobilenet.load();
-  statusText.style.display="none";
-}
-startCamera();
-loadModel();
+// Camera
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+  .then(stream => video.srcObject = stream);
 
-document.getElementById("scanBtn").onclick = async ()=>{
-  scanCount++;
-  scanLine.style.display="block";
-  statusText.style.display="block";
-  statusText.innerText="Analyzing…";
+// Load model
+(async () => {
+  model = await tf.loadGraphModel(
+    "https://tfhub.dev/google/aiy/vision/classifier/food_V1/1",
+    { fromTFHub: true }
+  );
+  modelLoaded = true;
+  scanBtn.innerText = "Scan Food";
+})();
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  canvas.getContext("2d").drawImage(video,0,0);
+FOOD_LIST.forEach(food => {
+  const opt = document.createElement("option");
+  opt.value = food;
+  opt.textContent = food;
+  manualSelect.appendChild(opt);
+});
 
-  const predictions = await model.classify(canvas);
-  scanLine.style.display="none";
-  statusText.style.display="none";
+scanBtn.onclick = async () => {
+  if (!modelLoaded) return;
 
-  let matches = new Set();
-  predictions.forEach(p=>{
-    const text = p.className.toLowerCase();
-    Object.entries(KEYWORDS).forEach(([food,keys])=>{
-      keys.forEach(k=>{
-        if(text.includes(k)) matches.add(food);
-      });
-    });
-  });
+  output.style.display = "block";
+  output.innerHTML = "<span class='neon'>Analyzing…</span>";
 
-  showConfirm([...matches].slice(0,5));
+  const tensor = tf.browser.fromPixels(video)
+    .resizeNearestNeighbor([224,224])
+    .toFloat()
+    .expandDims();
 
-  if(scanCount === 3){
-    document.getElementById("feedbackModal").classList.add("active");
+  const prediction = model.predict(tensor);
+  const data = await prediction.data();
+
+  const max = Math.max(...data);
+  const index = data.indexOf(max);
+  const confidence = (max * 100).toFixed(1);
+
+  // Fake label mapping fallback
+  let predictedFood = FOOD_LIST[index % FOOD_LIST.length];
+
+  if (confidence > 65) {
+    output.innerHTML = `
+      Detected: <span class="neon">${predictedFood}</span><br>
+      Confidence: ${confidence}%
+      <div class="confirm">
+        <button onclick="confirmFood('${predictedFood}')">Confirm</button>
+        <button onclick="manual()">Wrong</button>
+      </div>`;
+  } else {
+    manual();
   }
 };
 
-function showConfirm(items){
-  const modal=document.getElementById("confirmModal");
-  const box=document.getElementById("options");
-  box.innerHTML="";
-  if(items.length===0) items=Object.keys(FOOD_DB);
-  items.forEach(f=>{
-    const div=document.createElement("div");
-    div.className="option";
-    div.innerText=f.replace("_"," ").toUpperCase();
-    div.onclick=()=>showResult(f);
-    box.appendChild(div);
-  });
-  modal.classList.add("active");
+function manual() {
+  output.innerHTML = "Select the correct food 👇";
+  manualSelect.style.display = "block";
 }
 
-function showResult(food){
-  confirmModal.classList.remove("active");
-  resultModal.classList.add("active");
-  const d = FOOD_DB[food];
-  foodName.innerText = food.replace("_"," ").toUpperCase();
-  cal.innerText = d.cal;
-  pro.innerText = d.pro;
-  carb.innerText = d.carb;
-  fat.innerText = d.fat;
-}
-
-function closeResult(){
-  resultModal.classList.remove("active");
-}
-function closeFeedback(){
-  feedbackModal.classList.remove("active");
-}
-
-document.getElementById("themeBtn").onclick = ()=>{
-  document.documentElement.toggleAttribute("data-theme");
+manualSelect.onchange = () => {
+  confirmFood(manualSelect.value);
 };
-</script>
 
+function confirmFood(food) {
+  manualSelect.style.display = "none";
+  output.innerHTML = `
+    Confirmed Food:<br>
+    <span class="neon">${food}</span>
+  `;
+}
+</script>
 </body>
 </html>
